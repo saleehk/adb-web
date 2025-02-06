@@ -15,7 +15,6 @@ A modern web interface for Android Debug Bridge (ADB) that makes it easy to mana
 - 🖼️ Screen Capture
   - Take screenshots
   - Screen recording
-  - Real-time screen mirroring
 - 📝 Logging
   - View device logs (logcat)
   - Filter and search logs
@@ -24,6 +23,16 @@ A modern web interface for Android Debug Bridge (ADB) that makes it easy to mana
   - View system information
   - Page source viewer
   - Device diagnostics
+
+## Screenshots
+
+You can find screenshots of the application in the `screenshots` directory. These screenshots showcase various features and the user interface of the ADB Web Interface.
+
+![ADB Web Interface Screenshot 1](screenshots/1.png)
+
+![ADB Web Interface Screenshot 2](screenshots/2.png)
+
+![ADB Web Interface Screenshot 3](screenshots/3.png)
 
 ## Installation
 
