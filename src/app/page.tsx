@@ -7,9 +7,9 @@ import DeviceManager from '@/components/DeviceManager';
 export default function Home() {
   const router = useRouter();
 
-  useEffect(() => {
-    router.push('/devices');
-  }, [router]);
+  // useEffect(() => {
+  //   router.push('/devices');
+  // }, [router]);
 
   return (
     <main className="min-h-screen p-4">

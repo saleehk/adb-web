@@ -10,6 +10,7 @@ interface NavItem {
 }
 
 const navigation: NavItem[] = [
+  { name: 'Home', href: '/', icon: '🏠' },
   { name: 'Devices', href: '/devices', icon: '📱' },
   { name: 'Files', href: '/files', icon: '📁' },
   { name: 'Apps', href: '/apps', icon: '📦' },
