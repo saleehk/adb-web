@@ -4,9 +4,9 @@
 
 ### Device Management
 - [x] List connected devices
-- [ ] Device information display (model, serial number, Android version)
-- [ ] Multiple device support
-- [ ] Device connection status monitoring
+- [x] Device information display (model, serial number, Android version)
+- [x] Multiple device support
+- [x] Device connection status monitoring
 - [ ] Wireless ADB connection support
 
 ### File Management
@@ -33,11 +33,11 @@
 - [ ] System information display
 
 ### User Interface
-- [ ] Clean, modern web interface
-- [ ] Responsive design
-- [ ] Dark/Light theme support
-- [ ] Real-time updates
-- [ ] Progress indicators for operations
+- [x] Clean, modern web interface
+- [x] Responsive design
+- [x] Dark/Light theme support
+- [x] Real-time updates
+- [x] Progress indicators for operations
 
 ### Security
 - [ ] Authentication system
