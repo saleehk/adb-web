@@ -29,12 +29,12 @@
 - [x] View app information
 
 ### System Controls
-- [ ] Screen capture
-- [ ] Screen recording
-- [ ] Device reboot options
-- [ ] Shell command execution
-- [ ] Logcat viewer
-- [ ] System information display
+- [x] Screen capture
+- [x] Screen recording
+- [x] Device reboot options
+- [x] Shell command execution
+- [x] Logcat viewer
+- [x] System information display
 
 ### User Interface
 - [x] Clean, modern web interface

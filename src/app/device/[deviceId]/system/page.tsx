@@ -1,14 +1,18 @@
 'use client';
 
-export default function SystemPage({ params }: { params: { deviceId: string } }) {
+import { SystemControls } from '@/components/SystemControls';
+
+interface SystemPageProps {
+  params: {
+    deviceId: string;
+  };
+}
+
+export default function SystemPage({ params }: SystemPageProps) {
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">System Information</h1>
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <p className="text-gray-500 dark:text-gray-400">
-          System information for device: {params.deviceId}
-        </p>
-      </div>
+    <div className="container mx-auto py-6">
+      <h1 className="text-2xl font-bold mb-6">System Controls</h1>
+      <SystemControls deviceId={params.deviceId} />
     </div>
   );
 } 

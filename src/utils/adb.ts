@@ -515,6 +515,148 @@ export class ADBManager {
       return {};
     }
   }
+
+  async takeScreenshot(deviceId: string): Promise<string> {
+    try {
+      const timestamp = new Date().getTime();
+      const remotePath = `/sdcard/screenshot_${timestamp}.png`;
+      const localPath = `/tmp/screenshot_${timestamp}.png`;
+
+      // Take screenshot
+      await execAsync(`adb -s ${deviceId} shell screencap -p ${remotePath}`);
+      // Pull the file
+      await execAsync(`adb -s ${deviceId} pull ${remotePath} ${localPath}`);
+      // Clean up remote file
+      await execAsync(`adb -s ${deviceId} shell rm ${remotePath}`);
+
+      return localPath;
+    } catch (error) {
+      console.error('Error taking screenshot:', error);
+      throw new Error('Failed to take screenshot');
+    }
+  }
+
+  async startScreenRecording(deviceId: string): Promise<string> {
+    try {
+      const timestamp = new Date().getTime();
+      const remotePath = `/sdcard/recording_${timestamp}.mp4`;
+      
+      // Start screen recording
+      await execAsync(`adb -s ${deviceId} shell screenrecord ${remotePath}`);
+      return remotePath;
+    } catch (error) {
+      console.error('Error starting screen recording:', error);
+      throw new Error('Failed to start screen recording');
+    }
+  }
+
+  async stopScreenRecording(deviceId: string, remotePath: string): Promise<string> {
+    try {
+      // Kill the screenrecord process
+      await execAsync(`adb -s ${deviceId} shell pkill -l SIGINT screenrecord`);
+      
+      // Wait for the file to be saved
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const localPath = `/tmp/${remotePath.split('/').pop()}`;
+      // Pull the recording
+      await execAsync(`adb -s ${deviceId} pull ${remotePath} ${localPath}`);
+      // Clean up remote file
+      await execAsync(`adb -s ${deviceId} shell rm ${remotePath}`);
+
+      return localPath;
+    } catch (error) {
+      console.error('Error stopping screen recording:', error);
+      throw new Error('Failed to stop screen recording');
+    }
+  }
+
+  async rebootDevice(deviceId: string, mode?: 'system' | 'recovery' | 'bootloader'): Promise<void> {
+    try {
+      const command = mode ? `adb -s ${deviceId} reboot ${mode}` : `adb -s ${deviceId} reboot`;
+      await execAsync(command);
+    } catch (error) {
+      console.error('Error rebooting device:', error);
+      throw new Error('Failed to reboot device');
+    }
+  }
+
+  async executeShellCommand(deviceId: string, command: string): Promise<string> {
+    try {
+      const { stdout } = await execAsync(`adb -s ${deviceId} shell ${command}`);
+      return stdout;
+    } catch (error) {
+      console.error('Error executing shell command:', error);
+      throw new Error('Failed to execute shell command');
+    }
+  }
+
+  async getLogcat(deviceId: string, options: { 
+    filter?: string, 
+    lines?: number 
+  } = {}): Promise<string> {
+    try {
+      let command = `adb -s ${deviceId} logcat -d`;
+      if (options.filter) {
+        command += ` | grep "${options.filter}"`;
+      }
+      if (options.lines) {
+        command += ` | tail -n ${options.lines}`;
+      }
+      const { stdout } = await execAsync(command);
+      return stdout;
+    } catch (error) {
+      console.error('Error getting logcat:', error);
+      throw new Error('Failed to get logcat');
+    }
+  }
+
+  async getSystemInfo(deviceId: string): Promise<{
+    cpuInfo: string;
+    memInfo: string;
+    diskInfo: string;
+    processes: string;
+  }> {
+    try {
+      const [cpuInfo, memInfo, diskInfo, processes] = await Promise.all([
+        this.executeShellCommand(deviceId, 'cat /proc/cpuinfo'),
+        this.executeShellCommand(deviceId, 'cat /proc/meminfo'),
+        this.executeShellCommand(deviceId, 'df -h'),
+        this.executeShellCommand(deviceId, 'ps')
+      ]);
+
+      return {
+        cpuInfo,
+        memInfo,
+        diskInfo,
+        processes
+      };
+    } catch (error) {
+      console.error('Error getting system info:', error);
+      throw new Error('Failed to get system info');
+    }
+  }
+
+  async getPageSource(deviceId: string): Promise<string> {
+    try {
+      const timestamp = new Date().getTime();
+      const remotePath = `/sdcard/window_dump_${timestamp}.xml`;
+      
+      // Dump the current window hierarchy
+      await execAsync(`adb -s ${deviceId} shell uiautomator dump ${remotePath}`);
+      
+      // Read the file content
+      const { stdout } = await execAsync(`adb -s ${deviceId} shell cat ${remotePath}`);
+      
+      // Clean up the remote file
+      await execAsync(`adb -s ${deviceId} shell rm ${remotePath}`);
+      
+      return stdout;
+    } catch (error) {
+      console.error('Error getting page source:', error);
+      throw new Error('Failed to get page source');
+    }
+  }
 }
 
 export default ADBManager; 
