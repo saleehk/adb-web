@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useParams } from 'next/navigation';
+import DeviceSwitcher from '@/components/DeviceSwitcher';
 
 interface NavItem {
   name: string;
@@ -9,23 +10,29 @@ interface NavItem {
   icon: string;
 }
 
-const navigation: NavItem[] = [
+const getNavigation = (deviceId: string | null): NavItem[] => [
   { name: 'Home', href: '/', icon: '🏠' },
   { name: 'Devices', href: '/devices', icon: '📱' },
-  { name: 'Files', href: '/files', icon: '📁' },
-  { name: 'Apps', href: '/apps', icon: '📦' },
-  { name: 'System', href: '/system', icon: '⚙️' },
+  ...(deviceId ? [
+    { name: 'Files', href: `/device/${deviceId}/files`, icon: '📁' },
+    { name: 'Apps', href: `/device/${deviceId}/apps`, icon: '📦' },
+    { name: 'System', href: `/device/${deviceId}/system`, icon: '⚙️' },
+  ] : []),
   { name: 'Settings', href: '/settings', icon: '🔧' },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const params = useParams();
+  const deviceId = params?.deviceId as string;
+  const navigation = getNavigation(deviceId);
 
   return (
     <div className="w-64 bg-gray-900 text-white h-screen fixed left-0 top-0">
       <div className="p-4">
         <h1 className="text-xl font-bold mb-8">ADB Web Interface</h1>
-        <nav className="space-y-2">
+        <DeviceSwitcher />
+        <nav className="space-y-2 mt-6">
           {navigation.map((item) => {
             const isActive = pathname === item.href;
             return (
