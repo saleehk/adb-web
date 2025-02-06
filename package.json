@@ -1,12 +1,46 @@
 {
   "name": "adb-web",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.1.1",
+  "private": false,
+  "description": "A web interface for Android Debug Bridge (ADB)",
+  "type": "module",
+  "files": [
+    ".next",
+    "public",
+    "cli.js",
+    "next.config.js",
+    "package.json"
+  ],
+  "bin": {
+    "adb-web": "./cli.js"
+  },
+  "keywords": [
+    "adb",
+    "android",
+    "debug-bridge",
+    "web-interface",
+    "android-tools"
+  ],
+  "author": "saleehk",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/saleehk/adb-web.git"
+  },
+  "bugs": {
+    "url": "https://github.com/saleehk/adb-web/issues"
+  },
+  "homepage": "https://github.com/saleehk/adb-web#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "prepublishOnly": "npm run build",
+    "publish-package": "npm publish --access public"
   },
   "dependencies": {
     "@radix-ui/react-scroll-area": "^1.2.3",
