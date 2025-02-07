@@ -1,21 +1,37 @@
+'use client';
 import { useEffect, useState, useRef } from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { FixedSizeList as List } from 'react-window';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Download, Pause, Play, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface LogcatViewerProps {
   deviceId: string;
 }
 
+const ROW_HEIGHT = 150;
+const VIEWPORT_HEIGHT = 500;
+
+// Log level colors with adjusted colors for better visibility
+const LOG_COLORS: { [key: string]: string } = {
+  V: 'text-neutral-400',  // Verbose - lighter gray
+  D: 'text-cyan-400',     // Debug - cyan
+  I: 'text-cyan-400',     // Info - cyan (matching screenshot)
+  W: 'text-amber-400',    // Warning - amber
+  E: 'text-rose-400',     // Error - rose
+  F: 'text-red-500',      // Fatal - red
+};
+
 export function LogcatViewer({ deviceId }: LogcatViewerProps) {
   const [logs, setLogs] = useState<string[]>([]);
-  const [isPaused, setIsPaused] = useState(false);
+  const [isPaused, setIsPaused] = useState(true);
   const [filter, setFilter] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<List | null>(null);
+  const [autoScroll, setAutoScroll] = useState(true);
 
   useEffect(() => {
     if (!deviceId) return;
@@ -50,18 +66,18 @@ export function LogcatViewer({ deviceId }: LogcatViewerProps) {
 
           setLogs(prevLogs => {
             const newLogs = [...prevLogs, data];
-            // Keep only last 1000 lines to prevent memory issues
-            return newLogs.slice(-1000);
-          });
-
-          // Auto-scroll to bottom unless user has scrolled up
-          if (scrollAreaRef.current) {
-            const { scrollTop, scrollHeight, clientHeight } = scrollAreaRef.current;
-            const isScrolledToBottom = scrollHeight - scrollTop === clientHeight;
-            if (isScrolledToBottom) {
-              scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+            // Remove from the start to keep only last 10000 lines
+            const trimmedLogs = newLogs.length > 10000 ? newLogs.slice(-10000) : newLogs;
+            
+            // Schedule auto-scroll after state update
+            if (autoScroll) {
+              setTimeout(() => {
+                listRef.current?.scrollToItem(trimmedLogs.length - 1, 'end');
+              }, 0);
             }
-          }
+            
+            return trimmedLogs;
+          });
         } catch (error) {
           console.error('Error parsing logcat data:', error);
         }
@@ -83,7 +99,7 @@ export function LogcatViewer({ deviceId }: LogcatViewerProps) {
         eventSourceRef.current.close();
       }
     };
-  }, [deviceId, isPaused]);
+  }, [deviceId, isPaused, autoScroll]);
 
   const handleClear = () => {
     setLogs([]);
@@ -105,56 +121,108 @@ export function LogcatViewer({ deviceId }: LogcatViewerProps) {
     ? logs.filter(log => log.toLowerCase().includes(filter.toLowerCase()))
     : logs;
 
+  const getLogLevel = (log: string): string => {
+    // Extract log level from the format "02-07 09:15:58.312  2268  2499 D"
+    const match = log.match(/^\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\.\d{3}\s+\d+\s+\d+\s+([VDIWEF])/);
+    return match ? match[1] : 'I';
+  };
+
+  const Row = ({ index, style }: { index: number; style: React.CSSProperties }) => {
+    const log = filteredLogs[index];
+    
+    const logLevel = getLogLevel(log);
+    
+    return (
+      <div
+        style={{
+          ...style,
+          padding: '1px 8px',
+          lineHeight: '22px',
+        }}
+        className={cn(
+          'font-mono text-xs tracking-tight',
+          LOG_COLORS[logLevel],
+          index % 2 === 0 ? 'bg-muted/5' : 'bg-transparent'
+        )}
+      >
+        <pre className="whitespace-pre" style={{ height: '22px' }}>
+          {log.substring(0, 1000)}
+        </pre>
+      </div>
+    );
+  };
+
   return (
-    <Card className="p-4">
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center space-x-2 flex-1">
+    <Card className="p-4 shadow-sm">
+      <div className="flex justify-between items-center mb-4 gap-4">
+        <div className="flex items-center gap-2 flex-1">
           <Input
             placeholder="Filter logs..."
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             className="max-w-xs"
           />
-          <Button
-            variant={isPaused ? "default" : "secondary"}
-            onClick={() => setIsPaused(!isPaused)}
-            className="w-24"
-          >
-            {isPaused ? (
-              <>
-                <Play className="w-4 h-4 mr-2" />
-                Resume
-              </>
-            ) : (
-              <>
-                <Pause className="w-4 h-4 mr-2" />
-                Pause
-              </>
-            )}
-          </Button>
-          <Button variant="outline" onClick={handleClear}>
-            <X className="w-4 h-4 mr-2" />
-            Clear
-          </Button>
-          <Button variant="outline" onClick={handleSave}>
-            <Download className="w-4 h-4 mr-2" />
-            Save
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant={isPaused ? "default" : "secondary"}
+              onClick={() => setIsPaused(!isPaused)}
+              className="w-28"
+              size="sm"
+            >
+              {isPaused ? (
+                <>
+                  <Play className="w-4 h-4 mr-2" />
+                  Resume
+                </>
+              ) : (
+                <>
+                  <Pause className="w-4 h-4 mr-2" />
+                  Pause
+                </>
+              )}
+            </Button>
+            <Button variant="outline" onClick={handleClear} size="sm">
+              <X className="w-4 h-4 mr-2" />
+              Clear
+            </Button>
+            <Button variant="outline" onClick={handleSave} size="sm">
+              <Download className="w-4 h-4 mr-2" />
+              Save
+            </Button>
+            <Button
+              variant={autoScroll ? "default" : "secondary"}
+              onClick={() => setAutoScroll(!autoScroll)}
+              size="sm"
+            >
+              Auto-scroll: {autoScroll ? 'On' : 'Off'}
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center">
+        <div className="flex items-center whitespace-nowrap">
           <div
-            className={`w-3 h-3 rounded-full mr-2 ${
+            className={cn(
+              'w-2.5 h-2.5 rounded-full mr-2',
               isConnected ? 'bg-green-500' : 'bg-red-500'
-            }`}
+            )}
           />
-          {isConnected ? 'Connected' : 'Disconnected'}
+          <span className="text-sm">
+            {isConnected ? 'Connected' : 'Disconnected'}
+          </span>
         </div>
       </div>
-      <ScrollArea ref={scrollAreaRef} className="h-[500px] w-full rounded-md border p-4">
-        <pre className="font-mono text-sm whitespace-pre-wrap">
-          {filteredLogs.join('\n')}
-        </pre>
-      </ScrollArea>
+      <div className="rounded-md border bg-background overflow-hidden">
+        <List
+          ref={listRef}
+          height={VIEWPORT_HEIGHT}
+          itemCount={filteredLogs.length}
+          itemSize={ROW_HEIGHT}
+          width="100%"
+          overscanCount={5}
+          className="scrollbar-thin scrollbar-thumb-gray-400/50 scrollbar-track-transparent"
+        >
+          {Row}
+        </List>
+      </div>
     </Card>
   );
 } 

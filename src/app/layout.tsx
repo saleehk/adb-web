@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Layout from "@/components/layout/Layout";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,7 +19,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <Layout>{children}</Layout>
+        <Layout>
+          <NuqsAdapter>{children}</NuqsAdapter>
+        </Layout>
       </body>
     </html>
   );
