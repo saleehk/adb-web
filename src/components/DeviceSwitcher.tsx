@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { Device } from '@/utils/adb';
-import { useRouter, useParams, usePathname } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
+import { encodeDeviceId, decodeDeviceId } from '@/utils/deviceId';
 
 export default function DeviceSwitcher() {
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const params = useParams();
-  const pathname = usePathname();
 
   useEffect(() => {
     const fetchDevices = async () => {
@@ -33,19 +33,14 @@ export default function DeviceSwitcher() {
 
   const handleDeviceChange = (deviceId: string) => {
     if (!deviceId) {
-      router.push('/devices');
+      router.push('/');
       return;
     }
-
-    // Get the current route type (files, apps, system)
-    const routeType = pathname.split('/').pop();
-    const validRoutes = ['files', 'apps', 'system'];
     
-    // If we're not in a device-specific route, go to files by default
-    const newRoute = validRoutes.includes(routeType || '') ? routeType : 'files';
-    
-    router.push(`/device/${deviceId}/${newRoute}`);
+    router.push(`/device/${encodeDeviceId(deviceId)}`);
   };
+
+  const currentDeviceId = params?.deviceId ? decodeDeviceId(params.deviceId as string) : '';
 
   if (loading) {
     return (
@@ -69,7 +64,7 @@ export default function DeviceSwitcher() {
         Selected Device
       </label>
       <select
-        value={params?.deviceId as string || ''}
+        value={currentDeviceId}
         onChange={(e) => handleDeviceChange(e.target.value)}
         className="w-full px-3 py-2 bg-gray-800 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
       >

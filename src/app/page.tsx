@@ -1,20 +1,17 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import DeviceManager from '@/components/DeviceManager';
+import { LogcatViewer } from '@/components/LogcatViewer';
 
 export default function Home() {
-  const router = useRouter();
-
-  // useEffect(() => {
-  //   router.push('/devices');
-  // }, [router]);
-
   return (
-    <main className="min-h-screen p-4">
-      <h1 className="text-3xl font-bold mb-6">ADB Web Interface</h1>
+    <main className="container mx-auto p-4 space-y-8">
+      <h1 className="text-4xl font-bold mb-8">ADB Web Interface</h1>
       <DeviceManager />
+      <div className="mt-8">
+        <h2 className="text-2xl font-semibold mb-4">Device Logs</h2>
+        <LogcatViewer deviceId="*" />
+      </div>
     </main>
   );
 }
