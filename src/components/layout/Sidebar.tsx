@@ -16,8 +16,8 @@ const getNavigation = (deviceId: string | null): NavItem[] =>
     { name: 'Files', href: `/device/${deviceId}/files`, icon: '📁' },
     { name: 'Apps', href: `/device/${deviceId}/apps`, icon: '📦' },
     { name: 'System', href: `/device/${deviceId}/system`, icon: '⚙️' },
+    { name: 'Logs', href: `/device/${deviceId}/logs`, icon: '📝' },
   ] : [];
-
 export default function Sidebar() {
   const pathname = usePathname();
   const params = useParams();

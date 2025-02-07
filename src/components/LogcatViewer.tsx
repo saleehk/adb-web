@@ -6,10 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Download, Pause, Play, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-interface LogcatViewerProps {
-  deviceId: string;
-}
+import { useParams } from 'next/navigation';
+import { useQueryState, parseAsBoolean, parseAsString } from 'nuqs';
 
 const ROW_HEIGHT = 150;
 const VIEWPORT_HEIGHT = 500;
@@ -24,21 +22,22 @@ const LOG_COLORS: { [key: string]: string } = {
   F: 'text-red-500',      // Fatal - red
 };
 
-export function LogcatViewer({ deviceId }: LogcatViewerProps) {
+export function LogcatViewer() {
+  const params = useParams();
+  const deviceId = params.deviceId as string;
   const [logs, setLogs] = useState<string[]>([]);
-  const [isPaused, setIsPaused] = useState(true);
-  const [filter, setFilter] = useState('');
+  const [isPaused, setIsPaused] = useQueryState('logcat_paused', parseAsBoolean.withDefault(true));
+  const [filter, setFilter] = useQueryState('logcat_filter', parseAsString.withDefault(''));
   const [isConnected, setIsConnected] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
   const listRef = useRef<List | null>(null);
-  const [autoScroll, setAutoScroll] = useState(true);
+  const [autoScroll, setAutoScroll] = useQueryState('logcat_autoScroll', parseAsBoolean.withDefault(true));
 
   useEffect(() => {
     if (!deviceId) return;
 
     const connectEventSource = () => {
-      const url = new URL('/api/system/logcat/stream', window.location.origin);
-      url.searchParams.set('deviceId', deviceId);
+      const url = new URL(`/api/device/${deviceId}/system/logcat/stream`, window.location.origin);
       
       const eventSource = new EventSource(url.toString());
       eventSourceRef.current = eventSource;
@@ -118,7 +117,7 @@ export function LogcatViewer({ deviceId }: LogcatViewerProps) {
   };
 
   const filteredLogs = filter
-    ? logs.filter(log => log.toLowerCase().includes(filter.toLowerCase()))
+    ? logs.filter(log => log.toLowerCase().includes((filter || '').toLowerCase()))
     : logs;
 
   const getLogLevel = (log: string): string => {
@@ -158,7 +157,7 @@ export function LogcatViewer({ deviceId }: LogcatViewerProps) {
         <div className="flex items-center gap-2 flex-1">
           <Input
             placeholder="Filter logs..."
-            value={filter}
+            value={filter ?? ''}
             onChange={(e) => setFilter(e.target.value)}
             className="max-w-xs"
           />
