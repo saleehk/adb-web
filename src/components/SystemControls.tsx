@@ -26,9 +26,10 @@ NProgress.configure({
 
 interface SystemControlsProps {
   deviceId: string;
+  encodedDeviceId: string;
 }
 
-export function SystemControls({ deviceId }: SystemControlsProps) {
+export function SystemControls({ deviceId, encodedDeviceId }: SystemControlsProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingPath, setRecordingPath] = useState<string>('');
   const [logLines, setLogLines] = useState<string[]>([]);
@@ -167,7 +168,7 @@ export function SystemControls({ deviceId }: SystemControlsProps) {
 
   const handleLogcat = async () => {
     try {
-      const response = await fetch('/api/system/logcat', {
+      const response = await fetch(`/api/device/${encodedDeviceId}/system/logcat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ deviceId, lines: 1000 })
