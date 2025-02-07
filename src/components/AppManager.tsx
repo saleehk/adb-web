@@ -8,7 +8,8 @@ import { useDeviceId } from '@/hooks/useDeviceId';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ExternalLink } from 'lucide-react';
+import Link from 'next/link';
 
 export default function AppManager() {
   const { deviceId } = useDeviceId();
@@ -101,13 +102,19 @@ export default function AppManager() {
           >
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {app.appName === app.packageName ? (
-                    <span className="opacity-70">{app.packageName}</span>
-                  ) : (
-                    app.appName
-                  )}
-                </h3>
+                <Link 
+                  href={`apps/${app.packageName}`}
+                  className="group flex items-center space-x-2"
+                >
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-primary">
+                    {app.appName === app.packageName ? (
+                      <span className="opacity-70">{app.packageName}</span>
+                    ) : (
+                      app.appName
+                    )}
+                  </h3>
+                  <ExternalLink className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </Link>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   {app.packageName}
                 </p>

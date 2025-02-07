@@ -418,24 +418,39 @@ export class ADBManager {
       const firstInstallTime = info.match(/firstInstallTime=([^\s]+)/)?.[1] || '';
       const lastUpdateTime = info.match(/lastUpdateTime=([^\s]+)/)?.[1] || '';
       
+      // Use cmd package get-app-label as a more reliable way to get app name
       const { stdout: appLabel } = await execAsync(
-        `adb -s ${deviceId} shell pm dump ${packageName} | grep "applicationInfo" | grep "label="`
-      );
-      const appName = appLabel.match(/label="([^"]+)"/)?.[1] || packageName;
+        `adb -s ${deviceId} shell cmd package get-app-label ${packageName}`
+      ).catch(() => ({ stdout: packageName }));
       
-      const { stdout: apkPath } = await execAsync(
+      // Get all APK paths including split APKs
+      const { stdout: apkPaths } = await execAsync(
         `adb -s ${deviceId} shell pm path ${packageName}`
       );
-      const path = apkPath.trim().replace('package:', '');
       
-      const { stdout: appSize } = await execAsync(
-        `adb -s ${deviceId} shell du -h ${path}`
-      );
-      const size = appSize.split('\t')[0];
+      // Calculate total size by summing up all APK files
+      let totalSize = 0;
+      const paths = apkPaths.split('\n')
+        .filter(line => line.trim())
+        .map(line => line.replace('package:', '').trim());
+      
+      for (const path of paths) {
+        try {
+          const { stdout: sizeOutput } = await execAsync(
+            `adb -s ${deviceId} shell stat -c "%s" "${path}"`
+          );
+          totalSize += parseInt(sizeOutput.trim(), 10);
+        } catch (error) {
+          console.error(`Error getting size for ${path}:`, error);
+        }
+      }
+      
+      // Convert bytes to human readable format
+      const size = totalSize > 0 ? this.formatSize(totalSize) : 'Unknown';
       
       return {
         packageName,
-        appName,
+        appName: appLabel.trim() || packageName,
         versionName,
         versionCode,
         installTime: firstInstallTime,
@@ -447,6 +462,19 @@ export class ADBManager {
       console.error(`Error getting app info for package ${packageName} on device ${deviceId}:`, error);
       throw error;
     }
+  }
+
+  private formatSize(bytes: number): string {
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let size = bytes;
+    let unitIndex = 0;
+    
+    while (size >= 1024 && unitIndex < units.length - 1) {
+      size /= 1024;
+      unitIndex++;
+    }
+    
+    return `${Math.round(size * 100) / 100} ${units[unitIndex]}`;
   }
 
   async getBasicAppList(deviceId: string): Promise<AppInfo[]> {

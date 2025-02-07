@@ -12,7 +12,6 @@ export async function GET(
   const deviceIdEncoded = params.deviceId;
   const deviceId = decodeDeviceId(deviceIdEncoded);
   const searchParams = request.nextUrl.searchParams;
-  const packageName = searchParams.get('packageName');
   const mode = searchParams.get('mode');
 
   if (!deviceId) {
@@ -21,12 +20,6 @@ export async function GET(
 
   try {
     const adb = ADBManager.getInstance();
-
-    if (packageName) {
-      const details = await adb.getAppInfo(deviceId, packageName);
-      return NextResponse.json({ details });
-    }
-
     const apps = mode === 'basic' 
       ? await adb.getBasicAppList(deviceId)
       : await adb.getInstalledApps(deviceId);
@@ -48,67 +41,29 @@ export async function POST(
   const deviceIdEncoded = params.deviceId;
   const deviceId = decodeDeviceId(deviceIdEncoded);
   const formData = await request.formData();
-  const action = formData.get('action') as string;
+  const apkFile = formData.get('apkFile') as File;
 
   if (!deviceId) {
     return NextResponse.json({ error: 'Device ID is required' }, { status: 400 });
   }
 
+  if (!apkFile) {
+    return NextResponse.json({ error: 'APK file is required' }, { status: 400 });
+  }
+
   const adb = ADBManager.getInstance();
 
   try {
-    switch (action) {
-      case 'install': {
-        const apkFile = formData.get('apkFile') as File;
-        if (!apkFile) {
-          return NextResponse.json({ error: 'APK file is required' }, { status: 400 });
-        }
-
-        const buffer = Buffer.from(await apkFile.arrayBuffer());
-        const tempPath = join(tmpdir(), apkFile.name);
-        await writeFile(tempPath, buffer);
-        await adb.installApp(deviceId, tempPath);
-        await unlink(tempPath);
-        return NextResponse.json({ success: true });
-      }
-
-      case 'uninstall': {
-        const packageName = formData.get('packageName') as string;
-        if (!packageName) {
-          return NextResponse.json({ error: 'Package name is required' }, { status: 400 });
-        }
-        await adb.uninstallApp(deviceId, packageName);
-        return NextResponse.json({ success: true });
-      }
-
-      case 'clear': {
-        const packageName = formData.get('packageName') as string;
-        if (!packageName) {
-          return NextResponse.json({ error: 'Package name is required' }, { status: 400 });
-        }
-        await adb.clearAppData(deviceId, packageName);
-        return NextResponse.json({ success: true });
-      }
-
-      case 'force-stop': {
-        const packageName = formData.get('packageName') as string;
-        if (!packageName) {
-          return NextResponse.json({ error: 'Package name is required' }, { status: 400 });
-        }
-        await adb.forceStopApp(deviceId, packageName);
-        return NextResponse.json({ success: true });
-      }
-
-      default:
-        return NextResponse.json(
-          { error: 'Invalid action specified' },
-          { status: 400 }
-        );
-    }
+    const buffer = Buffer.from(await apkFile.arrayBuffer());
+    const tempPath = join(tmpdir(), apkFile.name);
+    await writeFile(tempPath, buffer);
+    await adb.installApp(deviceId, tempPath);
+    await unlink(tempPath);
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error handling app operation:', error);
+    console.error('Error installing app:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Operation failed' },
+      { error: error instanceof Error ? error.message : 'Failed to install app' },
       { status: 500 }
     );
   }

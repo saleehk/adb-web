@@ -31,7 +31,7 @@ export function useAppDetails(packageName: string) {
     queryFn: async () => {
       if (!deviceId) throw new Error('No device selected');
       
-      const response = await fetch(`/api/device/${deviceId}/apps?packageName=${packageName}`);
+      const response = await fetch(`/api/device/${deviceId}/apps/${packageName}`);
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to fetch app details');
@@ -43,30 +43,53 @@ export function useAppDetails(packageName: string) {
   });
 }
 
-export function useAppAction() {
+export function useInstallApp() {
   const { deviceId } = useDeviceId();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      action,
-      packageName,
-      apkFile,
-    }: {
-      action: 'install' | 'uninstall' | 'clear' | 'force-stop';
-      packageName?: string;
-      apkFile?: File;
-    }) => {
+    mutationFn: async (apkFile: File) => {
       if (!deviceId) throw new Error('No device selected');
       
       const formData = new FormData();
-      formData.append('action', action);
-      if (packageName) formData.append('packageName', packageName);
-      if (apkFile) formData.append('apkFile', apkFile);
+      formData.append('apkFile', apkFile);
 
       const response = await fetch(`/api/device/${deviceId}/apps`, {
         method: 'POST',
         body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to install app');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      toast.success('App installed successfully');
+      queryClient.invalidateQueries({ queryKey: ['apps', deviceId] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to install app');
+    },
+  });
+}
+
+export function useAppAction(packageName: string) {
+  const { deviceId } = useDeviceId();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (action: 'uninstall' | 'clear' | 'force-stop') => {
+      if (!deviceId) throw new Error('No device selected');
+      
+      const response = await fetch(`/api/device/${deviceId}/apps/${packageName}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action }),
       });
 
       if (!response.ok) {
@@ -76,23 +99,18 @@ export function useAppAction() {
 
       return response.json();
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (_, action) => {
       toast.success(
-        variables.action === 'install'
-          ? 'App installed successfully'
-          : variables.action === 'uninstall'
+        action === 'uninstall'
           ? 'App uninstalled successfully'
-          : variables.action === 'clear'
+          : action === 'clear'
           ? 'App data cleared successfully'
           : 'App force stopped successfully'
       );
-      // Invalidate apps queries to refresh the list
       queryClient.invalidateQueries({ queryKey: ['apps', deviceId] });
-      if (variables.packageName) {
-        queryClient.invalidateQueries({
-          queryKey: ['app-details', deviceId, variables.packageName],
-        });
-      }
+      queryClient.invalidateQueries({
+        queryKey: ['app-details', deviceId, packageName],
+      });
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : 'Operation failed');
