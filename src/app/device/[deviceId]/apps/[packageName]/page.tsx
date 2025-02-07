@@ -3,8 +3,12 @@
 import { useAppDetails } from '@/hooks/useApps';
 import { useDeviceId } from '@/hooks/useDeviceId';
 import { Card } from '@/components/ui/card';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Loader2, ArrowLeft, Activity, Play } from 'lucide-react';
 import Link from 'next/link';
+import { useAppActivities } from '@/hooks/useAppActivities';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface PageProps {
   params: {
@@ -16,6 +20,35 @@ export default function AppDetailsPage({ params }: PageProps) {
   const { packageName } = params;
   const { deviceId } = useDeviceId();
   const { data: app, isLoading, error } = useAppDetails(packageName);
+  const { data: activities, isLoading: loadingActivities } = useAppActivities(packageName);
+  const [startingActivity, setStartingActivity] = useState<string | null>(null);
+
+  const handleStartActivity = async (activityName: string) => {
+    try {
+      setStartingActivity(activityName);
+      const response = await fetch(
+        `/api/device/${deviceId}/apps/${packageName}/activities/start`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ activityName }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to start activity');
+      }
+
+      toast.success('Activity started successfully');
+    } catch (error) {
+      toast.error('Failed to start activity');
+      console.error('Error starting activity:', error);
+    } finally {
+      setStartingActivity(null);
+    }
+  };
 
   if (!deviceId) {
     return (
@@ -111,6 +144,48 @@ export default function AppDetailsPage({ params }: PageProps) {
                 )}
               </div>
             </div>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Activities</h3>
+            {loadingActivities ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : activities && activities.length > 0 ? (
+              <div className="space-y-2">
+                {activities.map((activity) => (
+                  <div
+                    key={activity}
+                    className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50"
+                  >
+                    <div className="flex items-center">
+                      <Activity className="h-4 w-4 mr-3 text-gray-500 dark:text-gray-400" />
+                      <span className="text-sm font-mono text-gray-700 dark:text-gray-300">
+                        {activity}
+                      </span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleStartActivity(activity)}
+                      disabled={startingActivity === activity}
+                    >
+                      {startingActivity === activity ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Play className="h-4 w-4" />
+                      )}
+                      <span className="ml-2">Start</span>
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                No activities found
+              </p>
+            )}
           </div>
         </div>
       </Card>

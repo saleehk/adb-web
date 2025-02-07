@@ -685,6 +685,40 @@ export class ADBManager {
       throw new Error('Failed to get page source');
     }
   }
+
+  async getAppActivities(deviceId: string, packageName: string): Promise<string[]> {
+    try {
+      const { stdout } = await execAsync(
+        `adb -s ${deviceId} shell dumpsys package ${packageName} | grep -A 1000 "Activity Resolver Table:" | grep -B 1000 "Receiver Resolver Table"`
+      );
+      
+      const activities = stdout
+        .split('\n')
+        .filter(line => line.includes(`${packageName}/`))
+        .map(line => {
+          const match = line.match(new RegExp(`${packageName}/([^\\s]+)`));
+          return match ? match[1] : null;
+        })
+        .filter((activity): activity is string => activity !== null);
+
+      return [...new Set(activities)]; // Remove duplicates
+    } catch (error) {
+      console.error(`Error getting activities for package ${packageName}:`, error);
+      throw new Error('Failed to get app activities');
+    }
+  }
+
+  async startActivity(deviceId: string, packageName: string, activityName: string): Promise<void> {
+    try {
+      const fullActivityName = activityName.includes('.') ? activityName : `.${activityName}`;
+      await execAsync(
+        `adb -s ${deviceId} shell am start -n "${packageName}/${packageName}${fullActivityName}"`
+      );
+    } catch (error) {
+      console.error(`Error starting activity ${activityName} for package ${packageName}:`, error);
+      throw new Error('Failed to start activity');
+    }
+  }
 }
 
 export default ADBManager; 
