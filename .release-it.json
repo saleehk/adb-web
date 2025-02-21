@@ -2,7 +2,8 @@
   "git": {
     "commitMessage": "chore: release v${version}",
     "tagName": "v${version}",
-    "push": true
+    "push": true,
+    "requireCleanWorkingDir": false
   },
   "github": {
     "release": true,
@@ -19,5 +20,7 @@
   },
   "hooks": {
     "after:bump": "npm run build"
-  }
+  },
+  "ci": true,
+  "non-interactive": true
 } 

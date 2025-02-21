@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/saleehk/adb-web/compare/v0.2.0...v0.2.1) (2025-02-21)
+
+
+### Features
+
+* add screenshot download and auto-refresh functionality ([b0dafc6](https://github.com/saleehk/adb-web/commit/b0dafc684bf8800b0083c27fb59cd9ea196f22df))
+
 # [0.2.0](https://github.com/saleehk/adb-web/compare/v0.1.4...v0.2.0) (2025-02-21)
 
 
