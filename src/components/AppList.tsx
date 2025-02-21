@@ -14,7 +14,8 @@ import {
   Trash2, 
   Power, 
   Eraser,
-  MoreVertical 
+  MoreVertical,
+  ListFilter
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -68,6 +69,7 @@ interface AppCardProps {
 function AppCard({ app }: AppCardProps) {
   const { mutate: performAction } = useAppAction(app.packageName);
   const { data: appDetails } = useAppDetails(app.packageName);
+  const { deviceId } = useDeviceId();
   
   const handleAction = (action: 'uninstall' | 'clear' | 'force-stop') => {
     if (action === 'uninstall') {
@@ -105,6 +107,13 @@ function AppCard({ app }: AppCardProps) {
               System
             </span>
           )}
+          <Link
+            href={`/device/${deviceId}/logs?app=${app.packageName}`}
+            target="_blank"
+            className="text-primary hover:text-primary/80"
+          >
+            <ListFilter className="h-4 w-4" />
+          </Link>
           <AppActions 
             onAction={handleAction}
             isSystemApp={appDetails?.isSystemApp || app.isSystemApp}

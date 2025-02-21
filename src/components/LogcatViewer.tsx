@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import { FixedSizeList as List } from 'react-window';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,9 +22,10 @@ const LOG_COLORS: { [key: string]: string } = {
   F: 'text-red-500',      // Fatal - red
 };
 
-export function LogcatViewer() {
+function LogcatViewerInner() {
   const params = useParams();
   const deviceId = params.deviceId as string;
+  const [appFilter] = useQueryState('app', parseAsString);
   const [logs, setLogs] = useState<string[]>([]);
   const [isPaused, setIsPaused] = useQueryState('logcat_paused', parseAsBoolean.withDefault(true));
   const [filter, setFilter] = useQueryState('logcat_filter', parseAsString.withDefault(''));
@@ -38,6 +39,9 @@ export function LogcatViewer() {
 
     const connectEventSource = () => {
       const url = new URL(`/api/device/${deviceId}/system/logcat/stream`, window.location.origin);
+      if (appFilter) {
+        url.searchParams.set('app', appFilter);
+      }
       
       const eventSource = new EventSource(url.toString());
       eventSourceRef.current = eventSource;
@@ -98,7 +102,7 @@ export function LogcatViewer() {
         eventSourceRef.current.close();
       }
     };
-  }, [deviceId, isPaused, autoScroll]);
+  }, [deviceId, isPaused, autoScroll, appFilter]);
 
   const handleClear = () => {
     setLogs([]);
@@ -223,5 +227,13 @@ export function LogcatViewer() {
         </List>
       </div>
     </Card>
+  );
+}
+
+export function LogcatViewer() {
+  return (
+    <Suspense fallback={<Card className="p-4 shadow-sm">Loading...</Card>}>
+      <LogcatViewerInner />
+    </Suspense>
   );
 } 

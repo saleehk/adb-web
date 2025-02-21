@@ -4,7 +4,7 @@ import { useAppDetails } from '@/hooks/useApps';
 import { useDeviceId } from '@/hooks/useDeviceId';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Activity, Play } from 'lucide-react';
+import { Loader2, ArrowLeft, Activity, Play, ListFilter } from 'lucide-react';
 import Link from 'next/link';
 import { useAppActivities } from '@/hooks/useAppActivities';
 import { useState } from 'react';
@@ -128,6 +128,13 @@ export default function AppDetailsPage({ params }: PageProps) {
                   <span className="mr-2">💾</span>
                   Size: {app.size}
                 </p>
+                <Link
+                  href={`/device/${deviceId}/logs?app=${packageName}`}
+                  className="flex items-center text-primary hover:underline"
+                >
+                  <ListFilter className="h-4 w-4 mr-2" />
+                  View App Logs
+                </Link>
               </div>
               <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
                 {app.installTime && (
