@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { LogcatViewer } from '@/components/LogcatViewer';
 import { Battery, Signal, Smartphone, Wifi } from 'lucide-react';
 import { decodeDeviceId } from '@/utils/deviceId';
+import { DeepLinkOpener } from '@/components/DeepLinkOpener';
 
 interface DeviceHomeProps {
   params: {
@@ -128,6 +129,11 @@ export default function DeviceHome({ params }: DeviceHomeProps) {
           </div>
         </Card>
       </div>
+
+      {/* Deep Link Opener */}
+      <Card className="p-6">
+        <DeepLinkOpener deviceId={decodedDeviceId} />
+      </Card>
 
       {/* Device Logs */}
       <div>

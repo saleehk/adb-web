@@ -719,6 +719,17 @@ export class ADBManager {
       throw new Error('Failed to start activity');
     }
   }
+
+  async openDeepLink(deviceId: string, url: string): Promise<void> {
+    try {
+      await execAsync(
+        `adb -s ${deviceId} shell am start -a android.intent.action.VIEW -d "${url}"`
+      );
+    } catch (error) {
+      console.error(`Error opening deep link ${url} on device ${deviceId}:`, error);
+      throw new Error('Failed to open deep link');
+    }
+  }
 }
 
 export default ADBManager; 
