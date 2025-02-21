@@ -1,6 +1,6 @@
 {
   "name": "adb-web",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "private": false,
   "description": "A web interface for Android Debug Bridge (ADB)",
   "type": "module",
