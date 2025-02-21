@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Device } from '@/utils/adb';
 import { Card } from '@/components/ui/card';
 import { LogcatViewer } from '@/components/LogcatViewer';
-import { Battery, Signal, Smartphone, Wifi, Camera, RefreshCw } from 'lucide-react';
+import { Battery, Signal, Smartphone, Wifi, Camera, RefreshCw, Download } from 'lucide-react';
 import { decodeDeviceId } from '@/utils/deviceId';
 import { DeepLinkOpener } from '@/components/DeepLinkOpener';
 import { Button } from '@/components/ui/button';
@@ -22,9 +22,14 @@ export default function DeviceHome({ params }: DeviceHomeProps) {
   const [error, setError] = useState<string | null>(null);
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [screenshotLoading, setScreenshotLoading] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [refreshInterval, setRefreshInterval] = useState(1);
+  const [isWindowFocused, setIsWindowFocused] = useState(true);
   const decodedDeviceId = decodeDeviceId(params.deviceId);
 
   const takeScreenshot = async () => {
+    if (!isWindowFocused) return;
+    
     try {
       setScreenshotLoading(true);
       const response = await fetch('/api/system/screenshot', {
@@ -48,10 +53,58 @@ export default function DeviceHome({ params }: DeviceHomeProps) {
     }
   };
 
-  // Take screenshot on initial load
+  const downloadScreenshot = async () => {
+    if (!screenshot) return;
+    
+    try {
+      const response = await fetch(`/api/files?path=${encodeURIComponent(screenshot)}`);
+      const blob = await response.blob();
+      
+      // Create a temporary link element
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `screenshot_${new Date().toISOString()}.png`;
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } catch (err) {
+      console.error('Error downloading screenshot:', err);
+    }
+  };
+
+  // Handle window focus events
   useEffect(() => {
-    takeScreenshot();
+    const onFocus = () => setIsWindowFocused(true);
+    const onBlur = () => setIsWindowFocused(false);
+
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('blur', onBlur);
+
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('blur', onBlur);
+    };
   }, []);
+
+  // Auto-refresh screenshot
+  useEffect(() => {
+    if (!autoRefresh || !isWindowFocused) return;
+
+    const interval = setInterval(takeScreenshot, refreshInterval * 1000);
+    return () => clearInterval(interval);
+  }, [autoRefresh, refreshInterval, isWindowFocused]);
+
+  // Take initial screenshot
+  useEffect(() => {
+    if (isWindowFocused) {
+      takeScreenshot();
+    }
+  }, [isWindowFocused]);
 
   useEffect(() => {
     const fetchDeviceInfo = async () => {
@@ -139,6 +192,40 @@ export default function DeviceHome({ params }: DeviceHomeProps) {
             </div>
           </Card>
 
+          {/* Screenshot Controls Card */}
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Screenshot Controls</h3>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="autoRefresh"
+                  checked={autoRefresh}
+                  onChange={(e) => setAutoRefresh(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <label htmlFor="autoRefresh" className="text-sm font-medium">
+                  Auto-refresh screenshot
+                </label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="number"
+                  min="1"
+                  max="60"
+                  value={refreshInterval}
+                  onChange={(e) => setRefreshInterval(Math.max(1, parseInt(e.target.value) || 1))}
+                  disabled={!autoRefresh}
+                  className="w-20 px-2 py-1 text-sm border rounded"
+                />
+                <span className="text-sm text-gray-500">seconds</span>
+              </div>
+              <div className="text-sm text-gray-500">
+                Status: {isWindowFocused ? 'Active' : 'Inactive'} window
+              </div>
+            </div>
+          </Card>
+
           {/* Deep Link Opener */}
           <Card className="p-6">
             <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
@@ -154,15 +241,26 @@ export default function DeviceHome({ params }: DeviceHomeProps) {
                 <Camera className="w-6 h-6 text-primary" />
                 <h3 className="text-lg font-semibold">Device Screen</h3>
               </div>
-              <Button
-                onClick={takeScreenshot}
-                disabled={screenshotLoading}
-                variant="outline"
-                size="sm"
-              >
-                <RefreshCw className={`w-4 h-4 mr-2 ${screenshotLoading ? 'animate-spin' : ''}`} />
-                Refresh Screen
-              </Button>
+              <div className="flex items-center space-x-2">
+                <Button
+                  onClick={downloadScreenshot}
+                  disabled={!screenshot}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download
+                </Button>
+                <Button
+                  onClick={takeScreenshot}
+                  disabled={screenshotLoading || (autoRefresh && isWindowFocused)}
+                  variant="outline"
+                  size="sm"
+                >
+                  <RefreshCw className={`w-4 h-4 mr-2 ${screenshotLoading ? 'animate-spin' : ''}`} />
+                  Refresh Screen
+                </Button>
+              </div>
             </div>
             <div className="relative aspect-[9/16] w-full max-w-sm mx-auto overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
               {screenshot ? (
